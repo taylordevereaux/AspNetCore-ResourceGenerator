@@ -10,7 +10,15 @@ namespace AspNetCore.ResourceGenerator.Cli
         {
             var projectDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI";
 
-            var generator = new ResourceGenerator(projectDirectory, "Resources", new List<string> { "en-CA", "fr-CA" }, false);
+            var generator = new ResourceGenerator(
+                projectDirectory
+                , "Resources"
+                , new List<ResourceFileLanguage> 
+                { 
+                    new ResourceFileLanguage("en-CA", true),
+                    new ResourceFileLanguage("fr-CA", "FR ", null)
+                }
+            );
 
             try
             {

@@ -15,20 +15,19 @@ namespace AspNetCore.ResourceGenerator
     {
         public string ProjectDirectory { get; set; }
         public string ResourcesDirectory { get; set; }
-        public bool SkipExistingResourceFiles { get; set; } = true;
+        //public bool SkipExistingResourceFiles { get; set; } = true;
 
-        public List<string> LanguageEncodings { get; set; }
+        public List<ResourceFileLanguage> LanguageEncodings { get; set; }
 
         public ResourceGenerator(
             string projectDirectory
             , string resourcesDirectory
-            , List<string> languageEncodings
-            , bool skipExistingResourceFiles)
+            , List<ResourceFileLanguage> languageEncodings)
         {
             ProjectDirectory = projectDirectory;
             ResourcesDirectory = resourcesDirectory.Contains(projectDirectory) ? resourcesDirectory : Path.Combine(projectDirectory, resourcesDirectory);
             LanguageEncodings = languageEncodings;
-            SkipExistingResourceFiles = skipExistingResourceFiles;
+            //SkipExistingResourceFiles = skipExistingResourceFiles;
         }
 
         public void GenerateResourceFiles(List<ResourceFileData> resourceFiles)
@@ -43,24 +42,53 @@ namespace AspNetCore.ResourceGenerator
                     Console.WriteLine($" - {key}");
                 }
 #endif
-
+                List<ResXDataNode> primaryEntries = null;
+                
                 // Generate the resource files for each language
-                foreach (var language in LanguageEncodings)
+                foreach (var language in LanguageEncodings.OrderBy(x => x.IsPrimary ? 0 : 1))
                 {
-                    GenerateResourceFile(resourceFile, language);
+                    if (language.IsPrimary)
+                    {
+                        primaryEntries = GenerateResourceFile(resourceFile, language);
+                    }
+                    else
+                    {
+                        GenerateResourceFile(resourceFile, language, primaryEntries);
+                    }
                 }
 
             }
         }
 
-        private void GenerateResourceFile(ResourceFileData resourceFile, string language)
+        private List<ResXDataNode> GenerateResourceFile(
+            ResourceFileData resourceFile
+            , ResourceFileLanguage language
+            , List<ResXDataNode> primaryEntries = null)
         {
-            var fileName = $"{resourceFile.FileName}.{language}.resx";
+            var fileName = $"{resourceFile.FileName}.{language.Encoding}.resx";
             var filePath = Path.Combine(ResourcesDirectory, resourceFile.ResourceFileDirectory, fileName);
+
+            string prefix = language.IsPrimary ? null : language.NonPrimaryResourceValuePrefix;
+            string suffix = language.IsPrimary ? null : language.NonPrimaryResourceValueSuffix;
+
+            var resourceEntries = GenerateEntriesFromKeys(
+                resourceFile.ResourceKeys, 
+                prefix,
+                suffix);
+
+            if (!language.IsPrimary && primaryEntries != null)
+            {
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
+                System.ComponentModel.Design.ITypeResolutionService typeres = null;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
+                resourceEntries.AddRange(
+                    primaryEntries.Select(x => new ResXDataNode(x.Name, $"{prefix}{x.GetValue(typeres)}{suffix}") { Comment = "AUTO" })
+                );
+            }
 
             if (File.Exists(filePath))
             {
-                MergeResourceFile(filePath, resourceFile.ResourceKeys);
+                return MergeResourceFile(filePath, resourceEntries, language);
             }
             else
             {
@@ -69,27 +97,29 @@ namespace AspNetCore.ResourceGenerator
                 {
                     directory.Create();
                 }
-#if DEBUG
-                filePath = Path.Combine(ResourcesDirectory, resourceFile.ResourceFileDirectory, $"TEST_{fileName}");
-#endif
-                CreateResourceFile(filePath, resourceFile.ResourceKeys);
+
+                return CreateResourceFile(filePath, resourceEntries);
             }
         }
 
-        private void CreateResourceFile(string filePath, List<string> resourceKeys)
+        private List<ResXDataNode> CreateResourceFile(string filePath, List<ResXDataNode> entries)
         {
             using (ResXResourceWriter resx = new ResXResourceWriter(filePath))
             { 
-                foreach (var key in resourceKeys)
+                foreach (var entry in entries)
                 {
-                    resx.AddResource(new ResXDataNode(key, key) { Comment = "AUTO" });
+                    resx.AddResource(entry);
                 }
             }
+            return entries;
         }
 
-        private void MergeResourceFile(string filePath, List<string> resourceKeys)
+        private List<ResXDataNode> MergeResourceFile(string filePath, List<ResXDataNode> resourceEntries, ResourceFileLanguage language)
         {
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
             System.ComponentModel.Design.ITypeResolutionService typeres = null;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
+
             List<ResXDataNode> entries = new List<ResXDataNode>();
             using (ResXResourceReader resx = new ResXResourceReader(filePath))
             {
@@ -101,18 +131,19 @@ namespace AspNetCore.ResourceGenerator
                 }
             }
 
-            foreach (var key in resourceKeys)
+            // Add the Resources Entries from the parse that don't already exist.
+            foreach (var entry in resourceEntries)
             {
-                if (!entries.Exists(x => x.Name == key))
+                if (!entries.Exists(x => x.Name == entry.Name))
                 {
-                    entries.Add(new ResXDataNode(key, key) { Comment = "AUTO" });
+                    entries.Add(entry);
                 }
             }
             
             // Update Entries that are not found from the regex.
             foreach (var entry in entries)
             {
-                if (!resourceKeys.Contains(entry.Name))
+                if (!resourceEntries.Exists(x => x.Name == entry.Name))
                 {
                     entry.Comment = "Resource Key not found from Auto Generation";
                 }
@@ -125,6 +156,8 @@ namespace AspNetCore.ResourceGenerator
                     resx.AddResource(entry);
                 }
             }
+
+            return entries;
         }
 
         public List<ResourceFileData> ParseViews()
@@ -147,6 +180,11 @@ namespace AspNetCore.ResourceGenerator
                 }
             }
             return results;
+        }
+
+        private List<ResXDataNode> GenerateEntriesFromKeys(List<string> resourceKeys, string valuePrefix, string valueSuffix)
+        {
+            return resourceKeys.Select(x => new ResXDataNode(x, $"{valuePrefix}{x}{valueSuffix}") { Comment = "AUTO" }).ToList();
         }
 
         private bool ParseView(FileInfo file, out ResourceFileData result)
@@ -185,7 +223,7 @@ namespace AspNetCore.ResourceGenerator
             {
                 if (!String.IsNullOrWhiteSpace(localizedMatch.Value))
                 {
-                    yield return localizedMatch.Value;
+                    yield return localizedMatch.Value.Trim();
                 }
                 localizedMatch = localizedMatch.NextMatch();
             }
