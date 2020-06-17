@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29920.165
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCore.ResourceGenerator.Console", "AspNetCore.ResourceGenerator.Cli\AspNetCore.ResourceGenerator.Cli.csproj", "{42AA639E-576F-437C-907B-FF6E68C048BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCore.ResourceGenerator", "AspNetCore.ResourceGenerator\AspNetCore.ResourceGenerator.csproj", "{2545B802-4E8A-4AE5-9469-202A1E36C556}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{42AA639E-576F-437C-907B-FF6E68C048BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42AA639E-576F-437C-907B-FF6E68C048BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42AA639E-576F-437C-907B-FF6E68C048BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42AA639E-576F-437C-907B-FF6E68C048BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CA543016-09C4-463F-91F2-4BA5EA332816}
+	EndGlobalSection
+EndGlobal

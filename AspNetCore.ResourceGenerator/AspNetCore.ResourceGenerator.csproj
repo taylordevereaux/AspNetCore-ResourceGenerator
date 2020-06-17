@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <UseWindowsForms>true</UseWindowsForms>
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ICSharpCode.Decompiler" Version="5.0.2.5153" />
+  </ItemGroup>
+
+</Project>
