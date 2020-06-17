@@ -1,7 +1,10 @@
-﻿using System;
+﻿using ICSharpCode.Decompiler.Metadata;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Resources;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -75,20 +78,53 @@ namespace AspNetCore.ResourceGenerator
 
         private void CreateResourceFile(string filePath, List<string> resourceKeys)
         {
-            using (System.Resources.ResXResourceWriter resx = new System.Resources.ResXResourceWriter(filePath))
+            using (ResXResourceWriter resx = new ResXResourceWriter(filePath))
             { 
                 foreach (var key in resourceKeys)
                 {
-                    resx.AddResource(key, key);
+                    resx.AddResource(new ResXDataNode(key, key) { Comment = "AUTO" });
                 }
             }
         }
 
         private void MergeResourceFile(string filePath, List<string> resourceKeys)
         {
-            //using (ResXResourceReader resxReader = new ResXResourceReader(resxFile))
-            //{
-            //}
+            System.ComponentModel.Design.ITypeResolutionService typeres = null;
+            List<ResXDataNode> entries = new List<ResXDataNode>();
+            using (ResXResourceReader resx = new ResXResourceReader(filePath))
+            {
+                resx.UseResXDataNodes = true;
+                foreach (DictionaryEntry entry in resx)
+                {
+                    ResXDataNode node = (ResXDataNode)entry.Value;
+                    entries.Add(node);
+                }
+            }
+
+            foreach (var key in resourceKeys)
+            {
+                if (!entries.Exists(x => x.Name == key))
+                {
+                    entries.Add(new ResXDataNode(key, key) { Comment = "AUTO" });
+                }
+            }
+            
+            // Update Entries that are not found from the regex.
+            foreach (var entry in entries)
+            {
+                if (!resourceKeys.Contains(entry.Name))
+                {
+                    entry.Comment = "Resource Key not found from Auto Generation";
+                }
+            }
+
+            using (ResXResourceWriter resx = new ResXResourceWriter(filePath))
+            {
+                foreach (var entry in entries)
+                {
+                    resx.AddResource(entry);
+                }
+            }
         }
 
         public List<ResourceFileData> ParseViews()
