@@ -1,5 +1,4 @@
-﻿using ICSharpCode.Decompiler.Metadata;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -78,6 +77,8 @@ namespace AspNetCore.ResourceGenerator
 
             if (!language.IsPrimary && primaryEntries != null)
             {
+                resourceEntries.RemoveAll(x => primaryEntries.Exists(p => p.Name == x.Name));
+
 #pragma warning disable CS0219 // Variable is assigned but its value is never used
                 System.ComponentModel.Design.ITypeResolutionService typeres = null;
 #pragma warning restore CS0219 // Variable is assigned but its value is never used
@@ -145,7 +146,10 @@ namespace AspNetCore.ResourceGenerator
             {
                 if (!resourceEntries.Exists(x => x.Name == entry.Name))
                 {
-                    entry.Comment = "Resource Key not found from Auto Generation";
+                    if (entry.Comment != "AUTO_IGNORE")
+                    {
+                        entry.Comment = "Resource Key not found from Auto Generation";
+                    }
                 }
             }
 
@@ -160,20 +164,29 @@ namespace AspNetCore.ResourceGenerator
             return entries;
         }
 
-        public List<ResourceFileData> ParseViews()
+
+        private List<ResXDataNode> GenerateEntriesFromKeys(List<string> resourceKeys, string valuePrefix, string valueSuffix)
+        {
+            return resourceKeys.Select(x => new ResXDataNode(x, $"{valuePrefix}{x}{valueSuffix}") { Comment = "AUTO" }).ToList();
+        }
+
+        #region Parser Base Methods
+
+        private List<ResourceFileData> ParseFiles(string subDirectory, string fileSearchPattern, Func<FileInfo, ResourceFileData> parseFileFunc)
         {
             List<ResourceFileData> results = new List<ResourceFileData>();
             System.IO.DirectoryInfo directoryInfo = new System.IO.DirectoryInfo(ProjectDirectory);
 
-            var viewsPath = Path.Combine(ProjectDirectory, "Views");
+            var viewsPath = Path.Combine(ProjectDirectory, subDirectory);
 
             if (System.IO.Directory.Exists(viewsPath))
             {
-                var files = new System.IO.DirectoryInfo(viewsPath).GetFiles("*.cshtml", SearchOption.AllDirectories);
+                var files = new System.IO.DirectoryInfo(viewsPath).GetFiles(fileSearchPattern, SearchOption.AllDirectories);
 
                 foreach (var file in files)
                 {
-                    if (ParseView(file, out ResourceFileData result))
+                    ResourceFileData result = parseFileFunc(file);
+                    if (result != null && result.ResourceKeys.Count > 0)
                     {
                         results.Add(result);
                     }
@@ -182,14 +195,9 @@ namespace AspNetCore.ResourceGenerator
             return results;
         }
 
-        private List<ResXDataNode> GenerateEntriesFromKeys(List<string> resourceKeys, string valuePrefix, string valueSuffix)
+        private ResourceFileData ParseFile(FileInfo file, string variableRegex)
         {
-            return resourceKeys.Select(x => new ResXDataNode(x, $"{valuePrefix}{x}{valueSuffix}") { Comment = "AUTO" }).ToList();
-        }
-
-        private bool ParseView(FileInfo file, out ResourceFileData result)
-        {
-            result = new ResourceFileData();
+            ResourceFileData result = new ResourceFileData();
 
             result.ResourceFileDirectory = GetPathFromProjectRoot(file);
 
@@ -200,17 +208,75 @@ namespace AspNetCore.ResourceGenerator
 
             var text = File.ReadAllText(file.FullName);
 
-            var localizerVariable = Regex.Match(text, "(?<=@inject IViewLocalizer )[\\w ]+");
+            var localizerVariable = Regex.Match(text, variableRegex);
 
             if (String.IsNullOrWhiteSpace(localizerVariable.Value))
-                return false;
+                return null;
 
-            var localizedMatch = Regex.Match(text, $"(?<=@{localizerVariable}\\[\")[\\w ]+");
+            var localizedMatch = Regex.Match(text, $"(?<={localizerVariable}\\[\")[\\w ]+");
 
             result.ResourceKeys = GetLocalizedStringKeys(localizedMatch);
 
-            return result.ResourceKeys.Count > 0;
+            return result;
         }
+
+        #endregion
+
+        #region View Parser
+        public List<ResourceFileData> ParseViews()
+        {
+            return ParseFiles("Views", "*.cshtml", ParseView);
+        }
+
+        private ResourceFileData ParseView(FileInfo file)
+        {
+            return ParseFile(file, "(?<=@inject IViewLocalizer )[\\w ]+");
+        }
+
+        #endregion
+
+        #region Controller Parser
+        public List<ResourceFileData> ParseControllers()
+        {
+            return ParseFiles("Controllers", "*.cs", ParseController);
+        }
+
+        private ResourceFileData ParseController(FileInfo file)
+        {
+            return ParseFile(file, "(?<=private IStringLocalizer<[A-Z,a-z]*> )[\\w ]+");
+        }
+
+        #endregion
+
+        #region Model Parsers
+
+        public List<ResourceFileData> ParseModels()
+        {
+            return ParseFiles("Models", "*.cs", ParseModel);
+        }
+
+
+        private ResourceFileData ParseModel(FileInfo file)
+        {
+            ResourceFileData result = new ResourceFileData();
+
+            result.ResourceFileDirectory = GetPathFromProjectRoot(file);
+
+            result.FileName = file.Name.Replace(file.Extension, "");
+
+            var text = File.ReadAllText(file.FullName);
+
+            var localizedMatch = Regex.Match(text, $"(?<=Display\\( *Name *= *\")[\\w ]+|(?<=Required\\( *ErrorMessage *= *\")[\\w ]+|(?<=ValidationResult\\((\\r?\\n?\\t* *\\$?)\")[\\w ]+");
+
+            result.ResourceKeys = GetLocalizedStringKeys(localizedMatch);
+
+            return result;
+        }
+
+        #endregion
+
+
+        #region Helper Methods
 
         private List<string> GetLocalizedStringKeys(Match localizedMatch)
         {
@@ -257,5 +323,6 @@ namespace AspNetCore.ResourceGenerator
 
             return path;
         }
+        #endregion
     }
 }

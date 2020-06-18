@@ -10,26 +10,52 @@ namespace AspNetCore.ResourceGenerator.Cli
         {
             var projectDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI";
 
-            var generator = new ResourceGenerator(
-                projectDirectory
-                , "Resources"
-                , new List<ResourceFileLanguage> 
-                { 
-                    new ResourceFileLanguage("en-CA", true),
-                    new ResourceFileLanguage("fr-CA", "FR ", null)
-                }
-            );
+            //var generator = new ResourceGenerator(
+            //    projectDirectory
+            //    , "Resources"
+            //    , new List<ResourceFileLanguage> 
+            //    { 
+            //        new ResourceFileLanguage("en-CA", true),
+            //        new ResourceFileLanguage("fr-CA", "FR ", null)
+            //    }
+            //);
+
+            //try
+            //{
+            //    var viewData = generator.ParseViews();
+
+            //    var controllerData = generator.ParseControllers();
+
+            //    var modelData = generator.ParseModels();
+
+            //    generator.GenerateResourceFiles(viewData);
+            //    generator.GenerateResourceFiles(controllerData);
+            //    generator.GenerateResourceFiles(modelData);
+            //}
+            //catch(Exception ex)
+            //{
+            //    Console.WriteLine(ex);
+            //}
 
             try
             {
-                var viewData = generator.ParseViews();
+                var resourceDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI\\Resources";
 
-                generator.GenerateResourceFiles(viewData);
+                var exporter = new ResourceExporter(
+                    resourceDirectory
+                    , new List<ResourceFileLanguage>
+                    {
+                    new ResourceFileLanguage("en-CA", true)
+                    }
+                );
+
+                exporter.ExportResourcesToExcel();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex);
             }
+
         }
     }
 }
