@@ -131,13 +131,14 @@ namespace AspNetCore.ResourceGenerator
                     entries.Add(node);
                 }
             }
-
+            bool hasChanges = false;
             // Add the Resources Entries from the parse that don't already exist.
             foreach (var entry in resourceEntries)
             {
                 if (!entries.Exists(x => x.Name == entry.Name))
                 {
                     entries.Add(entry);
+                    hasChanges = true;
                 }
             }
             
@@ -146,18 +147,23 @@ namespace AspNetCore.ResourceGenerator
             {
                 if (!resourceEntries.Exists(x => x.Name == entry.Name))
                 {
-                    if (entry.Comment != "AUTO_IGNORE")
+                    const string resourceText = "Resource Key not found from Auto Generation";
+                    if (entry.Comment != "AUTO_IGNORE" && entry.Comment != resourceText)
                     {
-                        entry.Comment = "Resource Key not found from Auto Generation";
+                        entry.Comment = resourceText;
+                        hasChanges = true;
                     }
                 }
             }
 
-            using (ResXResourceWriter resx = new ResXResourceWriter(filePath))
+            if (hasChanges)
             {
-                foreach (var entry in entries)
+                using (ResXResourceWriter resx = new ResXResourceWriter(filePath))
                 {
-                    resx.AddResource(entry);
+                    foreach (var entry in entries)
+                    {
+                        resx.AddResource(entry);
+                    }
                 }
             }
 

@@ -8,13 +8,13 @@ namespace AspNetCore.ResourceGenerator.Cli
     {
         static void Main(string[] args)
         {
-            var projectDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI";
+            //var projectDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI";
 
             //var generator = new ResourceGenerator(
             //    projectDirectory
             //    , "Resources"
-            //    , new List<ResourceFileLanguage> 
-            //    { 
+            //    , new List<ResourceFileLanguage>
+            //    {
             //        new ResourceFileLanguage("en-CA", true),
             //        new ResourceFileLanguage("fr-CA", "FR ", null)
             //    }
@@ -32,7 +32,7 @@ namespace AspNetCore.ResourceGenerator.Cli
             //    generator.GenerateResourceFiles(controllerData);
             //    generator.GenerateResourceFiles(modelData);
             //}
-            //catch(Exception ex)
+            //catch (Exception ex)
             //{
             //    Console.WriteLine(ex);
             //}
@@ -43,10 +43,12 @@ namespace AspNetCore.ResourceGenerator.Cli
 
                 var exporter = new ResourceExporter(
                     resourceDirectory
-                    , new List<ResourceFileLanguage>
+                    , new List<ResourceExportLanguage>
                     {
-                    new ResourceFileLanguage("en-CA", true)
+                        new ResourceExportLanguage("en-CA", true),
+                        new ResourceExportLanguage("fr-CA", false, false)
                     }
+                    , true
                 );
 
                 exporter.ExportResourcesToExcel();
