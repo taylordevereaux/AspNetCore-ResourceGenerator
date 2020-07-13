@@ -37,21 +37,69 @@ namespace AspNetCore.ResourceGenerator.Cli
             //    Console.WriteLine(ex);
             //}
 
+            //try
+            //{
+            //    var resourceDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI\\Resources";
+
+            //    var exporter = new ResourceExporter(
+            //        resourceDirectory
+            //        , new List<ResourceExportLanguage>
+            //        {
+            //            new ResourceExportLanguage("en-CA", true),
+            //            new ResourceExportLanguage("fr-CA", false, false)
+            //        }
+            //        , true
+            //    );
+
+            //    exporter.ExportResourcesToExcel();
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine(ex);
+            //}
+
+            //return;
             try
             {
                 var resourceDirectory = "C:\\Workspace\\AML\\ERI\\ERI-Web\\ERI\\Resources";
 
-                var exporter = new ResourceExporter(
+                //ResourceGenerator.ResetResourceFiles(resourceDirectory);
+
+                var exporter = new ResourceImporter(
                     resourceDirectory
-                    , new List<ResourceExportLanguage>
+                    , new List<ResourceImportLanguage>
                     {
-                        new ResourceExportLanguage("en-CA", true),
-                        new ResourceExportLanguage("fr-CA", false, false)
+                        new ResourceImportLanguage("en-CA", UpdateType.Prompt),
+                        new ResourceImportLanguage("fr-CA", UpdateType.Overwrite)
                     }
                     , true
                 );
+                exporter.ExportConflictResults = true;
 
-                exporter.ExportResourcesToExcel();
+                exporter.ImportResourcesFromExcel(
+                    "C:\\Users\\Taylor Devereaux\\Downloads\\ERI_Resources_Export_2020-06-19-04-30-55.xlsx",
+                    (string existingText, string newText) =>
+                    {
+                        Console.WriteLine(existingText);
+                        Console.WriteLine(
+                            newText);
+
+                        string key = null;
+                        do
+                        {
+                            Console.WriteLine("Resolve Conflict (1) Existing, (2) New: ");
+                            key = Console.ReadLine();
+                            if (key != "1" && key != "2")
+                            {
+                                Console.WriteLine("Invalid Entry!");
+                                key = null;
+                            }
+                        }
+                        while (key == null);
+
+                        return key == "1" ? existingText : newText;
+                    }
+                );
             }
             catch (Exception ex)
             {

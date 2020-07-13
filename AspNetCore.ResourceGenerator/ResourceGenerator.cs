@@ -58,6 +58,35 @@ namespace AspNetCore.ResourceGenerator
 
             }
         }
+        /// <summary>
+        /// Simply regenerates the resource files using the same key/value/comments in order 
+        /// to have a consistant format when generating or importing for clear changes in source control.
+        /// </summary>
+        public static void ResetResourceFiles(string resourcesDirectory)
+        {
+            var files = new System.IO.DirectoryInfo(resourcesDirectory).GetFiles($"*.resx", SearchOption.AllDirectories);
+            foreach (var resourceFile in files)
+            {
+                List<ResXDataNode> entries = new List<ResXDataNode>();
+                using (ResXResourceReader resx = new ResXResourceReader(resourceFile.FullName))
+                {
+                    resx.UseResXDataNodes = true;
+                    foreach (DictionaryEntry entry in resx)
+                    {
+                        ResXDataNode node = (ResXDataNode)entry.Value;
+                        entries.Add(node);
+                    }
+                }
+
+                using (ResXResourceWriter resx = new ResXResourceWriter(resourceFile.FullName))
+                {
+                    foreach (var entry in entries)
+                    {
+                        resx.AddResource(entry);
+                    }
+                }
+            }
+        }
 
         private List<ResXDataNode> GenerateResourceFile(
             ResourceFileData resourceFile
