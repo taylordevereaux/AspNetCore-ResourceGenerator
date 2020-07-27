@@ -19,6 +19,9 @@ namespace AspNetCore.ResourceGenerator
         public string ResourcesDirectory { get; set; }
         public List<ResourceExportLanguage> LanguageEncodings { get; set; }
         public bool GroupCommonResourcesToSharedSheet { get; set; } = false;
+        public string[] SkipEntryComments { get; set; }
+        public bool SkipEmptyResources { get; set; }
+
         public ResourceExporter(string resourcesDirectory, List<ResourceExportLanguage> languageEncodings, bool groupCommonResourcesToSharedSheet = false)
         {
             ResourcesDirectory = resourcesDirectory;
@@ -44,6 +47,10 @@ namespace AspNetCore.ResourceGenerator
 
             foreach (System.Data.DataTable table in data.Tables)
             {
+                if (SkipEmptyResources && table.Rows.Count <= 1)
+                {
+                    continue;
+                }
                 GenerateExcelSheet(excel, table);
             }
             workbook.SaveAs($"ERI_Resources_Export_{DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss")}.xlsx");
@@ -76,7 +83,7 @@ namespace AspNetCore.ResourceGenerator
             }
             catch (Exception ex)
             {
-
+                Console.WriteLine(ex);
             }
         }
 
@@ -113,12 +120,19 @@ namespace AspNetCore.ResourceGenerator
             {
                 if (t.TableName != Common)
                 {
-                    for (int i = 0; i < t.Rows.Count; ++i)
+                    int count = t.Rows.Count;
+                    for (int i = 0; i < count; ++i)
                     {
-                        if (commonEntries.Exists(x => (string)x.Key == (string)t.Rows[i][Key] 
-                            && (string)x.Value == (string)t.Rows[i][primaryLanguage.Encoding]))
+                        //Console.WriteLine("Group Row: {0}", i);
+
+                        if (!(t.Rows[i][Key] is System.DBNull) && !(t.Rows[i][primaryLanguage.Encoding] is System.DBNull))
                         {
-                            t.Rows.RemoveAt(i--);
+                            if (commonEntries.Exists(x => x.Key.ToString() == t.Rows[i][Key].ToString()
+                                && x.Value.ToString() == t.Rows[i][primaryLanguage.Encoding].ToString()))
+                            {
+                                t.Rows.RemoveAt(i--);
+                                count -= 1;
+                            }
                         }
                     }
                 }
@@ -176,7 +190,7 @@ namespace AspNetCore.ResourceGenerator
 
                             if (language.IncludedResourceValues)
                             {
-                                PopulateDataTable(language, file, table);
+                                PopulateDataTable(language, file, table, true);
                             }
                         }
                     }
@@ -186,7 +200,7 @@ namespace AspNetCore.ResourceGenerator
             return data;
         }
 
-        private static void CreateAndPopulateDataTable(DataSet data, ResourceExportLanguage language, FileInfo file, string tableName)
+        private void CreateAndPopulateDataTable(DataSet data, ResourceExportLanguage language, FileInfo file, string tableName)
         {
             System.Data.DataTable table = CreateDataTable(language, tableName);
 
@@ -204,14 +218,53 @@ namespace AspNetCore.ResourceGenerator
             return table;
         }
 
-        private static void PopulateDataTable(ResourceExportLanguage language, FileInfo file, System.Data.DataTable table)
+        private void PopulateDataTable(ResourceExportLanguage language, FileInfo file, System.Data.DataTable table, bool update = false)
         {
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
+            System.ComponentModel.Design.ITypeResolutionService typeres = null;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
+
             using (ResXResourceReader resx = new ResXResourceReader(file.FullName))
             {
+                resx.UseResXDataNodes = true;
                 foreach (DictionaryEntry entry in resx)
                 {
-                    var row = table.Rows.Add(entry.Key);
-                    row[language.Encoding] = entry.Value;
+                    ResXDataNode node = (ResXDataNode)entry.Value;
+                    if (SkipEntryComments?.Length > 0)
+                    {
+                        if (SkipEntryComments.Contains(node.Comment))
+                        {
+                            if (update)
+                            {
+                                for (int i = 0; i < table.Rows.Count; ++i)
+                                {
+                                    if (table.Rows[i][Key].ToString() == entry.Key.ToString())
+                                    {
+                                        table.Rows.RemoveAt(i);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            continue;
+                        }
+                    }
+
+                    if (!update)
+                    {
+                        var row = table.Rows.Add(entry.Key);
+                        row[language.Encoding] = node.GetValue(typeres);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < table.Rows.Count; ++i)
+                        {
+                            if (table.Rows[i][Key].ToString() == entry.Key.ToString())
+                            {
+                                table.Rows[i][language.Encoding] = node.GetValue(typeres);
+                            }
+                        }
+                    }
                 }
             }
         }

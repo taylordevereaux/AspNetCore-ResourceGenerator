@@ -62,7 +62,7 @@ namespace AspNetCore.ResourceGenerator
         /// Simply regenerates the resource files using the same key/value/comments in order 
         /// to have a consistant format when generating or importing for clear changes in source control.
         /// </summary>
-        public static void ResetResourceFiles(string resourcesDirectory)
+        public static void NormalizeResourceFiles(string resourcesDirectory)
         {
             var files = new System.IO.DirectoryInfo(resourcesDirectory).GetFiles($"*.resx", SearchOption.AllDirectories);
             foreach (var resourceFile in files)

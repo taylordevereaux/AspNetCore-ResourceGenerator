@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCore.ResourceGenerato
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCore.ResourceGenerator", "AspNetCore.ResourceGenerator\AspNetCore.ResourceGenerator.csproj", "{2545B802-4E8A-4AE5-9469-202A1E36C556}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCore.ResourceGenerator.WPF", "AspNetCore.ResourceGenerator.WPF\AspNetCore.ResourceGenerator.WPF.csproj", "{73D12D58-A1E7-4E02-971D-9BFAF492375F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2545B802-4E8A-4AE5-9469-202A1E36C556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73D12D58-A1E7-4E02-971D-9BFAF492375F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73D12D58-A1E7-4E02-971D-9BFAF492375F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73D12D58-A1E7-4E02-971D-9BFAF492375F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73D12D58-A1E7-4E02-971D-9BFAF492375F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
