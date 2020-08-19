@@ -21,6 +21,11 @@ namespace AspNetCore.ResourceGenerator
         public bool GroupCommonResourcesToSharedSheet { get; set; } = false;
         public string[] SkipEntryComments { get; set; }
         public bool SkipEmptyResources { get; set; }
+        public bool SkipLocalized { get; set; }
+        /// <summary>
+        /// If Skip Localized is set to true this will still include any localized resources that match this regex.
+        /// </summary>
+        public string SkipLocalizedIncludeFilterRegex { get; set; }
 
         public ResourceExporter(string resourcesDirectory, List<ResourceExportLanguage> languageEncodings, bool groupCommonResourcesToSharedSheet = false)
         {
@@ -58,6 +63,7 @@ namespace AspNetCore.ResourceGenerator
             excel.Quit();
         }
 
+        private const int RowOffset = 2;
         private void GenerateExcelSheet(Application excel, System.Data.DataTable table)
         {
             var worksheet = (Worksheet)excel.Worksheets.Add();
@@ -70,15 +76,44 @@ namespace AspNetCore.ResourceGenerator
                     worksheet.Cells[1, i] = table.Columns[i - 1].ColumnName;
                 }
 
-                for (int row = 2; row < table.Rows.Count + 2; ++row)
+                int sheetRow = RowOffset;
+                for (int row = RowOffset; row < table.Rows.Count + RowOffset; ++row)
                 {
-                    worksheet.Cells[row, 1] = (string)table.Rows[row - 2][Key];
-                    int languageIndex = 1;
-                    foreach (var language in LanguageEncodings.OrderBy(x => x.IsPrimary ? 0 : 1))
+                    bool skip = false;
+                    int languageIndex = LanguageEncodings.Count;
+                    foreach (var language in LanguageEncodings.OrderByDescending(x => x.IsPrimary ? 0 : 1))
                     {
-                        worksheet.Cells[row, languageIndex + 1] = table.Rows[row - 2][language.Encoding];
-                        languageIndex += 1;
+                        if (!language.IsPrimary 
+                            && SkipLocalized 
+                            && !string.IsNullOrWhiteSpace(table.Rows[row- RowOffset][language.Encoding].ToString())
+                            && (string.IsNullOrWhiteSpace(SkipLocalizedIncludeFilterRegex) 
+                                || !Regex.IsMatch(table.Rows[row - RowOffset][language.Encoding].ToString(), SkipLocalizedIncludeFilterRegex, RegexOptions.Multiline)
+                                )
+                            )
+                        {
+                            skip = true;
+                            break;
+                        }
+                        worksheet.Cells[sheetRow, languageIndex + 1] = table.Rows[row - RowOffset][language.Encoding];
+                        languageIndex -= 1;
                     }
+
+                    if (!skip)
+                    {
+                        worksheet.Cells[sheetRow, 1] = (string)table.Rows[row - RowOffset][Key];
+                        sheetRow++;
+                    }
+                }
+
+                if (sheetRow == RowOffset && SkipEmptyResources)
+                {
+                    //((Worksheet)excel.ActiveWorkbook.Sheets[worksheet.Index]).Delete();
+                    //excel.ActiveWorkbook.Save();
+                    //excel.Worksheets.Delete();
+                    //(excel.Worksheets[worksheet.Index] as Worksheet).Delete();
+                    excel.DisplayAlerts = false;
+                    worksheet.Delete();
+                    excel.DisplayAlerts = true;
                 }
             }
             catch (Exception ex)
